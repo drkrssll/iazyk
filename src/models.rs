@@ -30,3 +30,8 @@ pub struct UpdatePlayer {
     pub headshots: Option<i64>,
     pub bank: Option<i64>,
 }
+
+#[derive(Serialize)]
+pub struct ErrorResponse {
+    pub error: String,
+}

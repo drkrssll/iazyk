@@ -3,7 +3,7 @@ extern crate rocket;
 #[macro_use]
 extern crate diesel;
 
-use diesel::prelude::*;
+use diesel::{prelude::*, result};
 use rocket::serde::json::Json;
 use rocket::State;
 
@@ -12,7 +12,7 @@ mod models;
 mod schema;
 
 use db::DbPool;
-use models::{NewPlayer, Player, UpdatePlayer};
+use models::{ErrorResponse, NewPlayer, Player, UpdatePlayer};
 use schema::players;
 
 #[get("/players")]
@@ -25,14 +25,19 @@ fn get_players(pool: &State<DbPool>) -> Json<Vec<Player>> {
 }
 
 #[get("/players/<player_id>")]
-fn get_player(pool: &State<DbPool>, player_id: i32) -> Option<Json<Player>> {
+fn get_player(pool: &State<DbPool>, player_id: i32) -> Result<Json<Player>, Json<ErrorResponse>> {
     let connection = &mut pool.get().expect("Failed to get connection");
     let result = players::table
         .find(player_id)
         .first::<Player>(connection)
         .optional()
         .expect("Error loading player");
-    result.map(Json)
+
+    result.map(Json).ok_or_else(|| {
+        Json(ErrorResponse {
+            error: "Player not found".to_string(),
+        })
+    })
 }
 
 #[post("/players", data = "<new_player>")]
@@ -45,7 +50,7 @@ fn create_player(pool: &State<DbPool>, new_player: Json<NewPlayer>) -> Json<Play
     Json(inserted_player)
 }
 
-#[put("/players/<player_id>", data = "<update_player>")]
+#[post("/players/<player_id>", data = "<update_player>")]
 fn update_player(
     pool: &State<DbPool>,
     player_id: i32,
