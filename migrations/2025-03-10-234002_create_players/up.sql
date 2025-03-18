@@ -5,4 +5,5 @@ CREATE TABLE players (
     kills BIGINT NOT NULL DEFAULT 0,
     headshots BIGINT NOT NULL DEFAULT 0,
     bank BIGINT NOT NULL DEFAULT 0
+    multiplier BIGINT NOT NULL DEFAULT 1,
 )
