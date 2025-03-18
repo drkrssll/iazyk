@@ -24,7 +24,21 @@ fn get_player_bank(pool: &State<DbPool>, player_id: i32) -> Option<String> {
         .first::<i64>(connection)
         .optional()
         .expect("Error loading player bank");
+
     bank.map(|b| b.to_string())
+}
+
+#[get("/players/<player_id>/rank")]
+fn get_player_rank(pool: &State<DbPool>, player_id: i32) -> Option<String> {
+    let connection = &mut pool.get().expect("Failed to get connection");
+    let rank = players::table
+        .find(player_id)
+        .select(players::rank)
+        .first::<String>(connection)
+        .optional()
+        .expect("Error loading player rank");
+
+    rank.map(|b| b.to_string())
 }
 
 #[get("/players/<player_id>")]
@@ -89,6 +103,7 @@ fn rocket() -> _ {
         routes![
             get_player,
             get_player_bank,
+            get_player_rank,
             create_player,
             update_player,
             delete_player
