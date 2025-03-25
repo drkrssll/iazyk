@@ -19,6 +19,7 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 struct RankUpdate {
     rank: String,
+    bank: i64,
 }
 
 #[get("/players/<player_id>/bank")]
@@ -27,6 +28,32 @@ fn get_player_bank(pool: &State<DbPool>, player_id: i32) -> Option<String> {
     let bank = players::table
         .find(player_id)
         .select(players::bank)
+        .first::<i64>(connection)
+        .optional()
+        .expect("Error loading player bank");
+
+    bank.map(|b| b.to_string())
+}
+
+#[get("/players/<player_id>/kills")]
+fn get_player_kills(pool: &State<DbPool>, player_id: i32) -> Option<String> {
+    let connection = &mut pool.get().expect("Failed to get connection");
+    let bank = players::table
+        .find(player_id)
+        .select(players::kills)
+        .first::<i64>(connection)
+        .optional()
+        .expect("Error loading player bank");
+
+    bank.map(|b| b.to_string())
+}
+
+#[get("/players/<player_id>/headshots")]
+fn get_player_headshots(pool: &State<DbPool>, player_id: i32) -> Option<String> {
+    let connection = &mut pool.get().expect("Failed to get connection");
+    let bank = players::table
+        .find(player_id)
+        .select(players::headshots)
         .first::<i64>(connection)
         .optional()
         .expect("Error loading player bank");
@@ -137,6 +164,8 @@ fn rocket() -> _ {
         routes![
             get_player,
             get_player_bank,
+            get_player_kills,
+            get_player_headshots,
             get_player_rank,
             level_up_player,
             create_player,
