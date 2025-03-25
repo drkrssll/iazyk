@@ -90,29 +90,103 @@ fn get_player(pool: &State<DbPool>, player_id: i32) -> Result<Json<Player>, Json
     })
 }
 
-#[post("/players/<player_id>/lvlup", data = "<new_rank>")]
-fn level_up_player(
-    pool: &State<DbPool>,
-    player_id: i32,
-    new_rank: Json<RankUpdate>,
-) -> Option<Json<Player>> {
+#[post("/players/<player_id>/lvlup")]
+fn level_up_player(pool: &State<DbPool>, player_id: i32) -> Option<String> {
     let ranks = vec![
-        "A0", "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "B0", "B1", "B2", "B3", "B4",
-        "B5", "B6", "B7", "B8", "B9", "C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9",
+        "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "B0", "B1", "B2", "B3", "B4", "B5",
+        "B6", "B7", "B8", "B9", "C0", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9",
     ];
 
-    if !ranks.contains(&new_rank.rank.as_str()) {
-        return None;
-    }
+    let requirements = vec![
+        (500, 50),
+        (800, 100),
+        (1000, 150),
+        (1400, 200),
+        (1800, 250),
+        (2200, 300),
+        (2600, 350),
+        (3000, 400),
+        (3500, 450),
+        (4000, 500),
+        (4500, 550),
+        (5000, 600),
+        (5500, 650),
+        (6000, 700),
+        (6500, 750),
+        (7000, 800),
+        (7500, 850),
+        (8000, 900),
+        (8500, 950),
+        (9000, 1000),
+        (9500, 1050),
+        (10000, 1100),
+        (10500, 1150),
+        (11000, 1200),
+        (11500, 1250),
+        (12000, 1300),
+        (12500, 1350),
+        (13000, 1400),
+        (13500, 1450),
+    ];
 
     let connection = &mut pool.get().expect("Failed to get connection");
-    let updated_rank = diesel::update(players::table.find(player_id))
-        .set(players::rank.eq(&*new_rank.rank))
-        .get_result::<Player>(connection)
-        .optional()
-        .expect("Error leveling up player");
 
-    updated_rank.map(Json)
+    let current_rank = players::table
+        .find(player_id)
+        .select(players::rank)
+        .first::<String>(connection)
+        .optional()
+        .expect("Error loading player rank");
+
+    let kills = players::table
+        .find(player_id)
+        .select(players::kills)
+        .first::<i64>(connection)
+        .optional()
+        .expect("Error loading player kills");
+
+    let headshots = players::table
+        .find(player_id)
+        .select(players::headshots)
+        .first::<i64>(connection)
+        .optional()
+        .expect("Error loading player headshots");
+
+    if current_rank.as_deref().unwrap() == "C9" {
+        return current_rank.map(|r| r.to_string());
+    } else if current_rank.as_deref().unwrap() == "A0" {
+        if kills.unwrap() >= requirements[0].0 as i64
+            && headshots.unwrap() >= requirements[0].1 as i64
+        {
+            diesel::update(players::table.find(player_id))
+                .set(players::rank.eq("A1"))
+                .execute(connection)
+                .expect("Error updating player rank");
+        }
+    } else if let Some(index) = ranks
+        .iter()
+        .position(|&r| r == current_rank.as_deref().unwrap())
+    {
+        let next_index = index + 1;
+        if next_index < ranks.len() {
+            let (req_kills, req_headshots) = requirements[next_index];
+            if kills.unwrap() >= req_kills as i64 && headshots.unwrap() >= req_headshots as i64 {
+                diesel::update(players::table.find(player_id))
+                    .set(players::rank.eq(ranks[next_index]))
+                    .execute(connection)
+                    .expect("Error updating player rank");
+            }
+        }
+    }
+
+    let final_rank = players::table
+        .find(player_id)
+        .select(players::rank)
+        .first::<String>(connection)
+        .optional()
+        .expect("Error loading player rank");
+
+    final_rank.map(|r| r.to_string())
 }
 
 #[post("/players", data = "<new_player>")]
