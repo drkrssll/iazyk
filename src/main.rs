@@ -90,7 +90,7 @@ fn get_player(pool: &State<DbPool>, player_id: i32) -> Result<Json<Player>, Json
     })
 }
 
-#[post("/players/<player_id>/lvlup")]
+#[get("/players/<player_id>/lvlup")]
 fn level_up_player(pool: &State<DbPool>, player_id: i32) -> Option<String> {
     let ranks = vec![
         "A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "B0", "B1", "B2", "B3", "B4", "B5",
